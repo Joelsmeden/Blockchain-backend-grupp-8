@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Patientjournal</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+        <!-- LOGIN -->
+    <section id="login-page" class="page">
+
+        <div class="login-container">
+
+            <div class="logo">
+                <span>+</span>
+                <h1>Patientjournal</h1>
+            </div>
+
+            <p class="subtitle">
+                Säker åtkomst till patientjournaler
+            </p>
+
+            <form id="login-form">
+
+                <div class="form-group">
+                    <label for="username">Användare</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Ange användarnamn"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Lösenord</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Ange lösenord"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Logga in
+                </button>
+
+            </form>
+
+            <p id="login-error" class="error-message hidden">
+                Felaktiga inloggningsuppgifter.
+            </p>
+
+        </div>
+
+    </section>
+
+
+       <!-- MAIN APPLICATION -->
+    <div id="app" class="app hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <div class="logo-icon">+</div>
+                <span>Patientjournal</span>
+            </div>
+
+            <nav class="navigation">
+
+                <a href="#" class="nav-item active">
+                    <span>▣</span>
+                    Journal
+                </a>
+
+                <a href="#" class="nav-item">
+                    <span>◷</span>
+                    Access Logs
+                </a>
+
+                <a href="#" class="nav-item">
+                    <span>⚙</span>
+                    Inställningar
+                </a>
+
+            </nav>
+
+            <div class="sidebar-bottom">
+
+                <div class="server-status">
+                    <span class="status-dot"></span>
+                    <div>
+                        <small>Server</small>
+                        <strong>Online</strong>
+                    </div>
+                </div>
+
+                <button id="logout-button" class="logout-button">
+                    Logga ut
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- TOPBAR -->
+            <header class="topbar">
+
+                <div>
+                    <h2>Patientjournal</h2>
+                    <p>Hantera och visa patientinformation</p>
+                </div>
+
+                <div class="user-info">
+
+                    <div class="user-avatar">
+                        L
+                    </div>
+
+                    <div>
+                        <strong id="current-user">
+                            Användare
+                        </strong>
+
+                        <small id="current-role">
+                            Roll
+                        </small>
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- CONTENT -->
+            <div class="content">
+
+                 <!-- SEARCH -->
+                <section class="card search-card">
+
+                    <div class="section-heading">
+                        <div>
+                            <h3>Sök patient</h3>
+                            <p>Sök efter patientens namn.</p>
+                        </div>
+                    </div>
+
+                    <div class="search-container">
+
+                        <input
+                            type="text"
+                            id="patient-search"
+                            placeholder="Sök patient..."
+                        >
+
+                        <button class="btn btn-primary">
+                            Sök
+                        </button>
+
+                    </div>
+
+                </section>
+
+
+                 <!-- PATIENT INFORMATION -->
+                <section class="card patient-card">
+
+                    <div class="patient-header">
+
+                        <div class="patient-avatar">
+                            AB
+                        </div>
+
+                        <div>
+                            <h2 id="patient-name">
+                                Anna Andersson
+                            </h2>
+
+                            <p id="patient-personnummer">
+                                Personnummer: ********-****
+                            </p>
+                        </div>
+
+                        <span class="role-badge">
+                            Patient
+                        </span>
+
+                    </div>
+
+                    <div class="patient-details">
+
+                        <div class="detail">
+                            <span>Födelsedatum</span>
+                            <strong>1990-01-01</strong>
+                        </div>
+
+                        <div class="detail">
+                            <span>Vårdcentral</span>
+                            <strong>Exempel vårdcentral</strong>
+                        </div>
+
+                        <div class="detail">
+                            <span>Ansvarig läkare</span>
+                            <strong>Dr. Exempel</strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                 <!-- JOURNAL + ACCESS LOG -->
+                <div class="dashboard-grid">
+
+
+                    <!-- JOURNAL -->
+                    <section class="card journal-card">
+
+                        <div class="section-heading">
+
+                            <div>
+                                <h3>Medicinsk journal</h3>
+                                <p>Patientens medicinska anteckningar.</p>
+                            </div>
+
+                            <button
+                                class="btn btn-primary"
+                                id="new-note-button"
+                            >
+                                + Ny anteckning
+                            </button>
+
+                        </div>
+
+
+                        <div id="notes-list" class="notes-list">
+
+                            <!-- Exempelanteckning -->
+                            <article class="note">
+
+                                <div class="note-header">
+
+                                    <div>
+                                        <strong>Dr. Exempel</strong>
+                                        <span class="note-role">
+                                            Läkare
+                                        </span>
+                                    </div>
+
+                                    <time>
+                                        2026-09-30 14:32
+                                    </time>
+
+                                </div>
+
+                                <p class="note-content">
+                                    Exempel på medicinsk anteckning.
+                                    Den riktiga informationen kommer
+                                    senare från databasen.
+                                </p>
+
+                                <div class="note-footer">
+
+                                    <span class="visibility public">
+                                        Synlig för alla
+                                    </span>
+
+                                </div>
+
+                            </article>
+
+
+                            <article class="note">
+
+                                <div class="note-header">
+
+                                    <div>
+                                        <strong>Sjuksköterska</strong>
+                                        <span class="note-role">
+                                            Sjuksköterska
+                                        </span>
+                                    </div>
+
+                                    <time>
+                                        2026-09-30 12:10
+                                    </time>
+
+                                </div>
+
+                                <p class="note-content">
+                                    Exempel på ytterligare journalanteckning.
+                                </p>
+
+                                <div class="note-footer">
+
+                                    <span class="visibility medical">
+                                        Endast sjukvårdspersonal
+                                    </span>
+
+                                </div>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- ACCESS LOG -->
+                    <section class="card access-card">
+
+                        <div class="section-heading">
+
+                            <div>
+                                <h3>Access Logs</h3>
+                                <p>Registrerad åtkomst till journalen.</p>
+                            </div>
+
+                            <span class="blockchain-status">
+                                ● Blockchain
+                            </span>
+
+                        </div>
+
+
+                        <div id="access-log-list" class="access-log-list">
+
+                            <div class="access-log">
+
+                                <div class="log-icon">
+                                    👤
+                                </div>
+
+                                <div class="log-content">
+
+                                    <strong>Dr. Exempel</strong>
+
+                                    <span>
+                                        Läste patientjournal
+                                    </span>
+
+                                    <small>
+                                        2026-09-30 14:32
+                                    </small>
+
+                                </div>
+
+                                <span class="verified">
+                                    Verifierad
+                                </span>
+
+                            </div>
+
+
+                            <div class="access-log">
+
+                                <div class="log-icon">
+                                    👤
+                                </div>
+
+                                <div class="log-content">
+
+                                    <strong>Sjuksköterska</strong>
+
+                                    <span>
+                                        Läste patientjournal
+                                    </span>
+
+                                    <small>
+                                        2026-09-30 12:10
+                                    </small>
+
+                                </div>
+
+                                <span class="verified">
+                                    Verifierad
+                                </span>
+
+                            </div>
+
+
+                            <div class="access-log">
+
+                                <div class="log-icon">
+                                    👤
+                                </div>
+
+                                <div class="log-content">
+
+                                    <strong>Patient</strong>
+
+                                    <span>
+                                        Läste sin egen journal
+                                    </span>
+
+                                    <small>
+                                        2026-09-30 10:45
+                                    </small>
+
+                                </div>
+
+                                <span class="verified">
+                                    Verifierad
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                </div>
+
+
+                 <!-- NEW NOTE -->
+                <section
+                    id="new-note-section"
+                    class="card new-note-card hidden"
+                >
+
+                    <div class="section-heading">
+
+                        <div>
+                            <h3>Ny anteckning</h3>
+                            <p>Skriv en ny journalanteckning.</p>
+                        </div>
+
+                    </div>
+
+                    <form id="note-form">
+
+                        <div class="form-group">
+
+                            <label for="note-text">
+                                Anteckning
+                            </label>
+
+                            <textarea
+                                id="note-text"
+                                rows="6"
+                                placeholder="Skriv anteckning..."
+                                required
+                            ></textarea>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="note-visibility">
+                                Synlighet
+                            </label>
+
+                            <select id="note-visibility">
+
+                                <option value="private">
+                                    Endast mig
+                                </option>
+
+                                <option value="medical">
+                                    Endast sjukvårdspersonal
+                                </option>
+
+                                <option value="public">
+                                    Alla
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-actions">
+
+                            <button
+                                type="button"
+                                class="btn btn-secondary"
+                                id="cancel-note-button"
+                            >
+                                Avbryt
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Spara anteckning
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </section>
+
+
+                 <!-- ACCESS DENIED -->
+                <section
+                    id="access-denied"
+                    class="access-denied hidden"
+                >
+
+                    <div class="access-denied-icon">
+                        !
+                    </div>
+
+                    <h2>Åtkomst nekad</h2>
+
+                    <p>
+                        Du saknar behörighet att visa denna information.
+                    </p>
+
+                    <button class="btn btn-secondary">
+                        Tillbaka
+                    </button>
+
+                </section>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+    <!-- JavaScript kopplas på senare -->
+    <script src="js/app.js"></script>
+
+</body>
+</html>
