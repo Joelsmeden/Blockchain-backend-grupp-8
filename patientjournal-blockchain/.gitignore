@@ -1,0 +1,8 @@
+node_modules/
+
+# SQLite-databasen och dess WAL-filer
+*.db
+*.db-wal
+*.db-shm
+
+.env
