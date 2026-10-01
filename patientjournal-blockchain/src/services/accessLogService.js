@@ -3,6 +3,7 @@ const Blockchain = require("../blockchain/Blockchain");
 const { sha256, canonicalStringify } = require("../blockchain/crypto");
 const accessLogModel = require("../models/accessLogModel");
 const chainStore = require("../blockchain/chainStore");
+const db = require("../config/database");
 
 
 // Åtkomstliggaren finns på två ställen med olika syften.
@@ -61,9 +62,13 @@ function entryForBlock(block) {
 }
 
 
-// Registrerar en åtkomst: skriver raden, hashar den, minar ett eget
-// block för posten och skriver tillbaka hasharna på raden.
-function recordAccess({ user, patientId, action, noteId = null }) {
+// Raden, blocket och hasharna skrivs i en transaktion. Raden blir synlig
+// för andra anslutningar, även den andra noden, först när transaktionen
+// är klar, så den kan aldrig läsas utan entry_hash och block_hash.
+// Blocket minas inuti transaktionen men läggs till i kedjan först när
+// raden är sparad, så att kedjan inte får ett block vars rad rullats
+// tillbaka.
+const writeEntry = db.transaction(({ user, patientId, action, noteId }) => {
 
     const row = accessLogModel.insert({
         patientId: Number(patientId),
@@ -76,17 +81,36 @@ function recordAccess({ user, patientId, action, noteId = null }) {
 
     const fields = pickHashedFields(row);
     const entryHash = hashEntry(fields);
-
-    const block = blockchain.addBlock({ ...fields, entryHash });
+    const block = blockchain.mineNextBlock({ ...fields, entryHash });
 
     accessLogModel.setHashes(row.id, entryHash, block.hash);
+
+    return { row, block };
+});
+
+
+// Registrerar en åtkomst: skriver raden, hashar den, minar ett eget
+// block för posten och skriver tillbaka hasharna på raden, allt i en
+// transaktion. Sedan läggs blocket till i kedjan och sprids.
+function recordAccess({ user, patientId, action, noteId = null }) {
+
+    // immediate tar skrivlåset direkt, så två noder som loggar samtidigt
+    // väntar på varandra i stället för att få SQLITE_BUSY mitt i
+    const { row, block } = writeEntry.immediate({ user, patientId, action, noteId });
+
+    if (!blockchain.appendBlock(block)) {
+        throw new Error("Det minade blocket passar inte längst bak i kedjan.");
+    }
+
+    const stored = blockchain.getLatestBlock();
+
     persist();
 
     const entry = accessLogModel.findById(row.id);
 
-    events.emit("block", { block, entry, origin: "local" });
+    events.emit("block", { block: stored, entry, origin: "local" });
 
-    return { entry, block };
+    return { entry, block: stored };
 }
 
 

@@ -139,6 +139,38 @@ describe("recordAccess", () => {
         expect(() => service.recordAccess({ user: doctor, patientId: 999, action: "READ" })).toThrow();
         expect(service.getChain().length).toBe(1);
     });
+
+    test("en rad som hämtas efter recordAccess har alltid entryHash och blockHash", () => {
+        service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
+        service.recordAccess({ user: nurse, patientId: 2, action: "WRITE", noteId: 4 });
+        service.recordAccess({ user: patient, patientId: 2, action: "DENIED" });
+
+        const rows = model.findAll();
+
+        expect(rows).toHaveLength(3);
+        rows.forEach(row => {
+            expect(row.entryHash).toMatch(/^[0-9a-f]{64}$/);
+            expect(row.blockHash).toMatch(/^[0-9a-f]{64}$/);
+        });
+        expect(rows.map(row => row.blockHash))
+            .toEqual(service.getChain().slice(1).map(block => block.hash));
+    });
+
+    test("skriver varken rad eller block om hasharna inte kan sparas", () => {
+        const original = model.setHashes;
+        model.setHashes = () => {
+            throw new Error("skrivningen misslyckades");
+        };
+
+        expect(() => service.recordAccess({ user: doctor, patientId: 1, action: "READ" }))
+            .toThrow("skrivningen misslyckades");
+
+        model.setHashes = original;
+
+        expect(model.count()).toBe(0);
+        expect(service.getChain()).toHaveLength(1);
+    });
+
 });
 
 

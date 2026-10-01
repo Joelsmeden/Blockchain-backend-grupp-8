@@ -1,6 +1,9 @@
 const { freshApp, loginAs, accessLogService } = require("../helpers/api");
 
 
+// Varje test får en egen app med egen databas och kedja. Ett test som
+// loggar in mer än en gång binder appen till en konstant först, så att en
+// fortsättning efter en timeout aldrig anropar nästa tests app.
 let app;
 
 beforeEach(() => {
@@ -81,7 +84,8 @@ describe("POST /api/patients/:id/notes", () => {
     });
 
     test("en privat anteckning syns bara för författaren", async () => {
-        const doctor = await loginAs(app, "doctor");
+        const currentApp = app;
+        const doctor = await loginAs(currentApp, "doctor");
         const created = await doctor
             .post("/api/patients/3/notes")
             .send({ ...note, visibility: "private" })
@@ -90,17 +94,18 @@ describe("POST /api/patients/:id/notes", () => {
         const asDoctor = await doctor.get("/api/patients/3").expect(200);
         expect(asDoctor.body.notes.map(n => n.id)).toContain(created.body.note.id);
 
-        const nurse = await loginAs(app, "nurse");
+        const nurse = await loginAs(currentApp, "nurse");
         const asNurse = await nurse.get("/api/patients/3").expect(200);
         expect(asNurse.body.notes.map(n => n.id)).not.toContain(created.body.note.id);
     });
 
     test("en anteckning med synlighet all syns för patienten, en med staff gör det inte", async () => {
-        const doctor = await loginAs(app, "doctor");
+        const currentApp = app;
+        const doctor = await loginAs(currentApp, "doctor");
         const forAll = await doctor.post("/api/patients/1/notes").send({ ...note, visibility: "all" }).expect(201);
         const forStaff = await doctor.post("/api/patients/1/notes").send({ ...note, visibility: "staff" }).expect(201);
 
-        const patient = await loginAs(app, "patient");
+        const patient = await loginAs(currentApp, "patient");
         const journal = await patient.get("/api/patients/1").expect(200);
         const ids = journal.body.notes.map(n => n.id);
 
