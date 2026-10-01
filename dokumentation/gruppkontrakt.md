@@ -43,3 +43,5 @@ Nästa mötestid bestämms slutet på varje möte.
 ## Underskrifter
 
 - Joel
+- Khalil
+- Khosro
