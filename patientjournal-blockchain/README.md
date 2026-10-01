@@ -443,3 +443,7 @@ Flödet är routes → controllers → services → models. Kedjan ägs av `acce
 - **Sessioner ligger i minnet** per nod. Startas en nod om loggas användarna ut från den noden.
 - **Omminering kan ge dubbletter med tre eller fler noder**, om flera noder förlorat samma post i en fork och alla minar om den. Med två noder kan det inte hända, eftersom en post bara finns på noden som skapade den tills den spridits.
 - **`DIFFICULTY` måste vara samma på alla noder.** En nod med högre krav underkänner den andras block.
+
+## Författare
+
+Khosro Sharifi, GitHub KOMPAI-DEV.

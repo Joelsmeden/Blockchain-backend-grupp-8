@@ -212,3 +212,5 @@ Modulerna är skrivna så att de kan testas utan nätverk och utan filsystem.
 - Sessionscookien är `httpOnly` och `sameSite: lax`.
 - Kedjan innehåller inga personuppgifter utöver id-nummer, och kan därför läsas öppet.
 - Loggrader har inga `ON DELETE`-regler och fälten som hashas skyddas av främmande nycklar, så en rad kan inte ändras i det tysta av att något annat tas bort.
+
+Skriven av Khosro Sharifi.
