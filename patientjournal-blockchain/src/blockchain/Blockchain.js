@@ -27,7 +27,10 @@ class Blockchain {
 
 
     // Skapar och minar ett nytt block med given data och lägger det sist
-    addBlock(data) {
+    // Bygger och minar nästa block utan att lägga till det i kedjan, så
+    // att den som anropar kan spara blockets hash först och lägga till
+    // blocket med appendBlock när det är gjort.
+    mineNextBlock(data) {
 
         const previous = this.getLatestBlock();
 
@@ -38,7 +41,13 @@ class Blockchain {
             previousHash: previous.hash
         });
 
-        mineBlock(block, this.difficulty);
+        return mineBlock(block, this.difficulty);
+    }
+
+
+    addBlock(data) {
+
+        const block = this.mineNextBlock(data);
         this.chain.push(block);
 
         return block;
