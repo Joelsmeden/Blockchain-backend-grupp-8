@@ -32,4 +32,5 @@ Från rot mappen
 
 - [@Joel](https://github.com/Joelsmeden)
 - [@Khalil](https://github.com/Kalleanka123456)
+- [@Khosro](https://github.com/KOMPAI-DEV)
 
