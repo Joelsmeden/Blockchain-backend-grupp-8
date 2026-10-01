@@ -3,6 +3,8 @@ const http = require("http");
 const seed = require("./database/seed");
 const app = require("./app");
 const accessLogService = require("./services/accessLogService");
+const { createP2PServer } = require("./p2p/p2pServer");
+const { createSocketHandler } = require("./p2p/socketHandler");
 
 
 // Samma fil startas en gång per nod med olika miljövariabler:
@@ -43,7 +45,25 @@ app.locals.nodeInfo = {
 
 const server = http.createServer(app);
 
+
+// Realtid till webbläsarna över samma HTTP-server, med samma session
+createSocketHandler({
+    httpServer: server,
+    sessionMiddleware: app.locals.sessionMiddleware,
+    log: text => console.log(`${NODE_NAME}: ${text}`)
+});
+
+
+// P2P mellan noderna. /api/status läser antalet peers härifrån.
+const p2p = createP2PServer({ port: P2P_PORT, peers: PEERS, name: NODE_NAME });
+app.locals.p2p = p2p;
+
+
 server.listen(PORT, () => {
     console.log(`${NODE_NAME}: HTTP på http://localhost:${PORT}`);
-    console.log(`${NODE_NAME}: P2P-port ${P2P_PORT}, peers: ${PEERS.join(", ") || "inga"}`);
+});
+
+p2p.start().catch(error => {
+    console.error(`${NODE_NAME}: kunde inte starta P2P på port ${P2P_PORT}: ${error.message}`);
+    process.exit(1);
 });

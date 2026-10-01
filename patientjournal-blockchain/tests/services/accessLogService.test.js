@@ -361,3 +361,98 @@ describe("receiveBlock", () => {
         expect(service.getChain().length).toBe(2);
     });
 });
+
+
+describe("replaceChain", () => {
+
+    const foreignEntry = (id) => ({
+        id, patientId: 2, userId: 2, role: "sjuksköterska", action: "READ",
+        noteId: null, timestamp: "2026-10-01T12:00:00.000Z", entryHash: String(id).repeat(64).slice(0, 64)
+    });
+
+    // En annan nods kedja med ett antal egna poster
+    function foreignChain(count) {
+        const other = new Blockchain();
+        for (let i = 0; i < count; i++) {
+            other.addBlock(foreignEntry(50 + i));
+        }
+        return JSON.parse(JSON.stringify(other.chain));
+    }
+
+    test("byter till en längre giltig kedja", () => {
+        expect(service.replaceChain(foreignChain(2))).toBe(true);
+        expect(service.getChain()).toHaveLength(3);
+        expect(service.getChain()[2].data.id).toBe(51);
+    });
+
+    test("behåller egen kedja om den mottagna är lika lång, kortare eller ogiltig", () => {
+        service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
+        const before = service.getBlockchain().getLatestBlock().hash;
+
+        expect(service.replaceChain(foreignChain(1))).toBe(false);
+        expect(service.replaceChain(foreignChain(0))).toBe(false);
+
+        const tampered = foreignChain(3);
+        tampered[2].data.userId = 1;
+        expect(service.replaceChain(tampered)).toBe(false);
+
+        expect(service.replaceChain(null)).toBe(false);
+        expect(service.getBlockchain().getLatestBlock().hash).toBe(before);
+    });
+
+    test("minar om egna poster som försvann i bytet och uppdaterar radens block_hash", () => {
+        const { entry, block } = service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
+        const listener = jest.fn();
+        service.events.on("block", listener);
+
+        expect(service.replaceChain(foreignChain(2))).toBe(true);
+
+        const chain = service.getChain();
+        expect(chain).toHaveLength(4);
+        expect(chain[1].data.id).toBe(50);
+        expect(chain[2].data.id).toBe(51);
+
+        // Vår post ligger sist i ett nytt block med samma data
+        const remined = chain[3];
+        expect(remined.data).toEqual(block.data);
+        expect(remined.hash).not.toBe(block.hash);
+        expect(remined.previousHash).toBe(chain[2].hash);
+        expect(service.getBlockchain().isChainValid()).toBe(true);
+
+        // Raden pekar på det nya blocket och verifieras fortfarande
+        const row = model.findById(entry.id);
+        expect(row.blockHash).toBe(remined.hash);
+        expect(row.entryHash).toBe(entry.entryHash);
+        expect(service.verifyEntry(row)).toBe(true);
+
+        // Händelsen skickas som ett eget block så att P2P sprider det
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener.mock.calls[0][0]).toMatchObject({ origin: "local", entry: { id: entry.id } });
+        expect(listener.mock.calls[0][0].block.hash).toBe(remined.hash);
+    });
+
+    test("minar om flera poster i ursprunglig ordning", () => {
+        const first = service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
+        const second = service.recordAccess({ user: doctor, patientId: 2, action: "READ" });
+
+        expect(service.replaceChain(foreignChain(3))).toBe(true);
+
+        const chain = service.getChain();
+        expect(chain).toHaveLength(6);
+        expect(chain[4].data.entryHash).toBe(first.entry.entryHash);
+        expect(chain[5].data.entryHash).toBe(second.entry.entryHash);
+        expect(service.verifyAll()).toMatchObject({ tamperedRows: [], rowCount: 2 });
+    });
+
+    test("minar inte om poster som redan finns i den nya kedjan", () => {
+        const { block } = service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
+
+        const other = new Blockchain();
+        other.appendBlock(JSON.parse(JSON.stringify(block)));
+        other.addBlock(foreignEntry(50));
+
+        expect(service.replaceChain(JSON.parse(JSON.stringify(other.chain)))).toBe(true);
+        expect(service.getChain()).toHaveLength(3);
+        expect(service.getChain()[1].hash).toBe(block.hash);
+    });
+});
