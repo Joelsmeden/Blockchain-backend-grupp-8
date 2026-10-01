@@ -68,7 +68,7 @@ Inloggningen läser just nu kontona från `src/models/userModel.js`. Kontot `pat
 
 ## Skärmdumpar
 
-Skärmdumpar av inloggning, sökning, journalvy per roll och åtkomstloggen i realtid läggs till här när gränssnittet är kopplat mot API:et.
+Skärmdumpar av inloggning, sökning, journalvy per roll och åtkomstloggen i realtid läggs till här.
 
 ## Roller och behörighet
 
