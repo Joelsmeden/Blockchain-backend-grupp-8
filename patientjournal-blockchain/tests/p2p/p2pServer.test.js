@@ -2,6 +2,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const WebSocket = require("ws");
+const Blockchain = require("../../src/blockchain/Blockchain");
 const { MESSAGE_TYPES } = require("../../src/p2p/p2pServer");
 
 
@@ -414,5 +415,52 @@ describe("skydd mot felaktiga meddelanden", () => {
         expect(messages[1].data).toHaveLength(1);
         expect(messages[1].data[0].hash).toBe(a.latestHash());
         expect(messages[2].data).toHaveLength(3);
+    });
+
+    test("en fork besvaras med egen kedja bara när den mottagna kedjan är giltig", async () => {
+        const a = await createNode().start();
+        a.record();
+        const ours = a.latestHash();
+
+        // En lika lång kedja från en annan nod, genesis plus ett block,
+        // vars sista hash uppfyller villkoret
+        function equalChain(accept) {
+            for (let id = 50; id < 5000; id++) {
+                const other = new Blockchain();
+                other.addBlock({
+                    id, patientId: 2, userId: 2, role: "sjuksköterska", action: "READ",
+                    noteId: null, timestamp: "2026-10-01T12:00:00.000Z", entryHash: String(id).repeat(64).slice(0, 64)
+                });
+                if (accept(other.getLatestBlock().hash)) {
+                    return JSON.parse(JSON.stringify(other.chain));
+                }
+            }
+            throw new Error("hittade ingen passande kedja");
+        }
+
+        const responses = (client) => client.messages.filter(message => message.type === MESSAGE_TYPES.RESPONSE_BLOCKCHAIN);
+
+        // Lika lång kedja med manipulerad hash: ignoreras helt, inget svar
+        const tampered = equalChain(() => true);
+        tampered[1].hash = tampered[1].hash.slice(0, -1) + (tampered[1].hash.endsWith("0") ? "1" : "0");
+
+        const client = await rawClient(a);
+        client.send(JSON.stringify({ type: MESSAGE_TYPES.RESPONSE_BLOCKCHAIN, data: tampered }));
+        await pause(150);
+
+        expect(a.chain()).toHaveLength(2);
+        expect(a.latestHash()).toBe(ours);
+        expect(responses(client)).toHaveLength(0);
+
+        // Lika lång giltig kedja med högre sista hash: A behåller sin kedja
+        // och skickar den, exakt en gång, så att motparten byter
+        const higher = equalChain(hash => hash > ours);
+        client.send(JSON.stringify({ type: MESSAGE_TYPES.RESPONSE_BLOCKCHAIN, data: higher }));
+        await pause(150);
+        client.close();
+
+        expect(a.latestHash()).toBe(ours);
+        expect(responses(client)).toHaveLength(1);
+        expect(responses(client)[0].data).toEqual(JSON.parse(JSON.stringify(a.chain())));
     });
 });

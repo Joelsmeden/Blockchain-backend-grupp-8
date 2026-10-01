@@ -106,9 +106,12 @@ function createP2PServer({
             // liggaren om våra poster och sprider dem. Byter vi inte är det
             // motparten som ska byta, så den får vår kedja och tillämpar
             // samma regel. Exakt en nod byter, så det blir ingen loop.
+            // En ogiltig kedja, till exempel från en nod med annan
+            // DIFFICULTY, besvaras inte, annars skickar noderna kedjor
+            // fram och tillbaka utan slut.
             if (ledger.replaceChain(received)) {
                 say(`fork vid block ${latestReceived.index}, bytte till kedjan med lägst sista hash`);
-            } else if (received.length === ledger.getChain().length) {
+            } else if (received.length === ledger.getChain().length && ledger.getBlockchain().isChainValid(received)) {
                 say(`fork vid block ${latestReceived.index}, behöll egen kedja och skickade den`);
                 send(from, MESSAGE_TYPES.RESPONSE_BLOCKCHAIN, ledger.getChain());
             }
