@@ -163,6 +163,40 @@ function receiveBlock(block) {
 }
 
 
+// Byter till en längre giltig kedja från en annan nod. Varje åtkomst
+// blir ett block direkt, så två noder kan hinna skapa block med samma
+// index. Längsta kedjan vinner, men då försvinner posterna i kedjan som
+// förlorade. De jämförs före och efter bytet och minas om ovanpå den
+// nya kedjan, så att ingen åtkomst tappas. Returnerar true om kedjan
+// byttes.
+function replaceChain(newChain) {
+
+    const before = blockchain.chain.slice(1).map(block => block.data);
+
+    if (!blockchain.replaceChain(newChain)) {
+        return false;
+    }
+
+    persist();
+
+    const kept = hashesInChain();
+    const missing = before.filter(entry => !kept.has(entry.entryHash));
+
+    missing.forEach(entry => {
+
+        const block = blockchain.addBlock(entry);
+
+        // Raden pekar på det gamla blocket, uppdatera till det nya
+        accessLogModel.setHashes(entry.id, entry.entryHash, block.hash);
+        persist();
+
+        events.emit("block", { block, entry: entryForBlock(block), origin: "local" });
+    });
+
+    return true;
+}
+
+
 // Sparar nodens kedja till fil efter varje ändring. Gör inget i test.
 function persist() {
     chainStore.save(blockchain.chain);
@@ -199,6 +233,7 @@ module.exports = {
     verifyEntry,
     verifyAll,
     receiveBlock,
+    replaceChain,
     loadChain,
     getChain,
     getBlockchain
