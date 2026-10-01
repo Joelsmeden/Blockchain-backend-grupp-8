@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "node1": "cross-env PORT=3001 P2P_PORT=6001 node src/server.js",
     "node2": "cross-env PORT=3002 P2P_PORT=6002 PEERS=ws://localhost:6001 node src/server.js",
+    "seed": "node src/database/seed.js",
     "test": "jest"
   },
   "engines": {
