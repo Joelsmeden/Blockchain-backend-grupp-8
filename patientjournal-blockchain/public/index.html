@@ -25,6 +25,14 @@
                 Säker åtkomst till patientjournaler
             </p>
 
+            <div class="form-group">
+                <label for="node-select">Server</label>
+                <select id="node-select">
+                    <option value="3001">Nod 1 (port 3001)</option>
+                    <option value="3002">Nod 2 (port 3002)</option>
+                </select>
+            </div>
+
             <form id="login-form">
 
                 <div class="form-group">
@@ -100,7 +108,7 @@
                     <span class="status-dot"></span>
                     <div>
                         <small>Server</small>
-                        <strong>Online</strong>
+                        <strong id="node-name">Online</strong>
                     </div>
                 </div>
 
@@ -171,6 +179,8 @@
                         </button>
 
                     </div>
+
+                    <div id="search-results" class="hidden"></div>
 
                 </section>
 
@@ -444,6 +454,23 @@
 
                         <div class="form-group">
 
+                            <label for="note-title">
+                                Rubrik
+                            </label>
+
+                            <input
+                                type="text"
+                                id="note-title"
+                                maxlength="200"
+                                placeholder="Rubrik"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
                             <label for="note-text">
                                 Anteckning
                             </label>
@@ -470,11 +497,11 @@
                                     Endast mig
                                 </option>
 
-                                <option value="medical">
+                                <option value="staff">
                                     Endast sjukvårdspersonal
                                 </option>
 
-                                <option value="public">
+                                <option value="all">
                                     Alla
                                 </option>
 
@@ -482,6 +509,8 @@
 
                         </div>
 
+
+                        <p id="note-error" class="error-message hidden"></p>
 
                         <div class="form-actions">
 
@@ -536,8 +565,13 @@
     </div>
 
 
-    <!-- JavaScript kopplas på senare -->
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/js/app.js"></script>
+    <script src="/js/login.js"></script>
+    <script src="/js/patients.js"></script>
+    <script src="/js/notes.js"></script>
+    <script src="/js/accessLogs.js"></script>
+    <script src="/js/socket.js"></script>
 
 </body>
 </html>
