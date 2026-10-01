@@ -41,6 +41,22 @@ describe("POST /api/login", () => {
         expect(response.body.user).toMatchObject({ role: "patient", patientId: 1 });
     });
 
+    test("patient2 finns bara i databasen och får patientId 2 i sessionen", async () => {
+        const userModel = require("../../src/models/userModel");
+        expect(userModel.users.some(user => user.username === "patient2")).toBe(false);
+
+        const agent = await loginAs(app, "patient2");
+        const response = await agent.get("/api/me").expect(200);
+
+        expect(response.body.user).toEqual({
+            id: 6,
+            username: "patient2",
+            name: "Johan Nilsson",
+            role: "patient",
+            patientId: 2
+        });
+    });
+
     test("ger 401 vid fel lösenord", async () => {
         const response = await request(app)
             .post("/api/login")

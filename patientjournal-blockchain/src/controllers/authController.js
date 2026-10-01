@@ -1,7 +1,7 @@
 
 const {
     authenticateUser
-} = require("../models/userModel");
+} = require("../services/authService");
 
 
 // POST /api/login

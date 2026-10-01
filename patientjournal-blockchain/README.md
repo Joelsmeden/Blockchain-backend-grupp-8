@@ -64,8 +64,6 @@ Alla konton har lösenordet `1234`.
 
 Demodatan har tre patienter, Lisa Karlsson (1), Johan Nilsson (2) och Maria Lindqvist (3), med anteckningar i alla tre synlighetsnivåerna.
 
-Inloggningen läser just nu kontona från `src/models/userModel.js`. Kontot `patient2` finns bara i databasen och kan användas när inloggningen pekas om till `authService.authenticateUser`, se [Kända begränsningar](#kända-begränsningar).
-
 ## Skärmdumpar
 
 Skärmdumpar av inloggning, sökning, journalvy per roll och åtkomstloggen i realtid läggs till här.
@@ -438,7 +436,6 @@ Flödet är routes → controllers → services → models. Kedjan ägs av `acce
 
 ## Kända begränsningar
 
-- **Inloggningen läser från `userModel.js`.** `authService.authenticateUser` gör samma sak mot databasen och returnerar samma objekt, så bytet är en `require`-rad i `authController.js`. Tills dess fungerar inte kontot `patient2`.
 - **Båda noderna måste nå samma databasfil.** Kedjan replikeras mellan noderna, men databasen delas. Noderna ska därför köras på samma maskin, eller mot en gemensam fil.
 - **Sessioner ligger i minnet** per nod. Startas en nod om loggas användarna ut från den noden.
 - **Omminering kan ge dubbletter med tre eller fler noder**, om flera noder förlorat samma post i en fork och alla minar om den. Med två noder kan det inte hända, eftersom en post bara finns på noden som skapade den tills den spridits.
