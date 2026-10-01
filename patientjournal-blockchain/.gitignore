@@ -6,3 +6,6 @@ node_modules/
 *.db-shm
 
 .env
+
+# Databas och kedjefiler från lokala körningar
+data/
