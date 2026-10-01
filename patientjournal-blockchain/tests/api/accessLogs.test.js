@@ -1,5 +1,4 @@
-const request = require("supertest");
-const { freshApp, loginAs, accessLogService, db } = require("../helpers/api");
+const { freshApp, loginAs, api, accessLogService, db } = require("../helpers/api");
 
 
 // Varje test får en egen app med egen databas och kedja. Ett test som
@@ -26,7 +25,7 @@ async function someTraffic(currentApp = app) {
 describe("GET /api/chain", () => {
 
     test("kan läsas utan inloggning och börjar med genesis", async () => {
-        const response = await request(app).get("/api/chain").expect(200);
+        const response = await api(app).get("/api/chain").expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.length).toBe(1);
@@ -40,7 +39,7 @@ describe("GET /api/chain", () => {
     test("innehåller ett block per åtkomst med bara id-nummer och hash", async () => {
         await someTraffic();
 
-        const response = await request(app).get("/api/chain").expect(200);
+        const response = await api(app).get("/api/chain").expect(200);
         const [, read, write, denied] = response.body.chain;
 
         expect(response.body.length).toBe(4);
@@ -60,7 +59,7 @@ describe("GET /api/chain", () => {
     test("innehåller varken journaltext, namn eller personnummer", async () => {
         await someTraffic();
 
-        const response = await request(app).get("/api/chain").expect(200);
+        const response = await api(app).get("/api/chain").expect(200);
         const serialized = JSON.stringify(response.body);
 
         ["Rubrik", "Text", "Blodtryck", "Årskontroll", "Anna", "Andersson", "Lisa", "Karlsson", "19850412"]
@@ -74,7 +73,7 @@ describe("GET /api/chain/verify", () => {
     test("godkänner en orörd liggare", async () => {
         await someTraffic();
 
-        const response = await request(app).get("/api/chain/verify").expect(200);
+        const response = await api(app).get("/api/chain/verify").expect(200);
 
         expect(response.body).toEqual({
             success: true,
@@ -94,7 +93,7 @@ describe("GET /api/chain/verify", () => {
 
         db().prepare("UPDATE access_logs SET action = 'READ' WHERE id = ?").run(deniedRow.id);
 
-        const response = await request(app).get("/api/chain/verify").expect(200);
+        const response = await api(app).get("/api/chain/verify").expect(200);
 
         expect(response.body).toMatchObject({
             valid: false,
@@ -110,7 +109,7 @@ describe("GET /api/chain/verify", () => {
 
         db().prepare("DELETE FROM access_logs WHERE id = ?").run(deniedRow.id);
 
-        const response = await request(app).get("/api/chain/verify").expect(200);
+        const response = await api(app).get("/api/chain/verify").expect(200);
 
         expect(response.body).toMatchObject({
             valid: false,
@@ -126,7 +125,7 @@ describe("GET /api/chain/verify", () => {
 describe("GET /api/status", () => {
 
     test("svarar som ensam nod när server.js inte satt nodinfo", async () => {
-        const response = await request(app).get("/api/status").expect(200);
+        const response = await api(app).get("/api/status").expect(200);
 
         expect(response.body).toEqual({
             success: true,
@@ -144,7 +143,7 @@ describe("GET /api/status", () => {
         app.locals.nodeInfo = { name: "nod-3001", port: 3001, p2pPort: 6001 };
         app.locals.p2p = { getPeerCount: () => 2 };
 
-        const response = await request(app).get("/api/status").expect(200);
+        const response = await api(app).get("/api/status").expect(200);
 
         expect(response.body).toMatchObject({ node: "nod-3001", port: 3001, p2pPort: 6001, peers: 2 });
     });
@@ -152,7 +151,7 @@ describe("GET /api/status", () => {
     test("kedjelängden följer liggaren", async () => {
         await someTraffic();
 
-        const response = await request(app).get("/api/status").expect(200);
+        const response = await api(app).get("/api/status").expect(200);
 
         expect(response.body.chainLength).toBe(4);
         expect(response.body.latestHash).toBe(accessLogService().getBlockchain().getLatestBlock().hash);

@@ -1,5 +1,4 @@
-const request = require("supertest");
-const { freshApp, loginAs } = require("../helpers/api");
+const { freshApp, loginAs, api } = require("../helpers/api");
 
 
 let app;
@@ -12,7 +11,7 @@ beforeEach(() => {
 describe("POST /api/login", () => {
 
     test("loggar in med rätt uppgifter och sätter en sessionscookie", async () => {
-        const response = await request(app)
+        const response = await api(app)
             .post("/api/login")
             .send({ username: "doctor", password: "1234" })
             .expect(200);
@@ -33,7 +32,7 @@ describe("POST /api/login", () => {
     });
 
     test("patientkontot får sitt patientId i sessionen", async () => {
-        const response = await request(app)
+        const response = await api(app)
             .post("/api/login")
             .send({ username: "patient", password: "1234" })
             .expect(200);
@@ -58,7 +57,7 @@ describe("POST /api/login", () => {
     });
 
     test("ger 401 vid fel lösenord", async () => {
-        const response = await request(app)
+        const response = await api(app)
             .post("/api/login")
             .send({ username: "doctor", password: "fel" })
             .expect(401);
@@ -71,14 +70,14 @@ describe("POST /api/login", () => {
     });
 
     test("ger 401 för okänd användare", async () => {
-        await request(app)
+        await api(app)
             .post("/api/login")
             .send({ username: "finnsinte", password: "1234" })
             .expect(401);
     });
 
     test("ger 400 när fält saknas", async () => {
-        const response = await request(app)
+        const response = await api(app)
             .post("/api/login")
             .send({ username: "doctor" })
             .expect(400);
@@ -90,7 +89,7 @@ describe("POST /api/login", () => {
     });
 
     test("ger 400 vid ogiltig JSON", async () => {
-        const response = await request(app)
+        const response = await api(app)
             .post("/api/login")
             .set("Content-Type", "application/json")
             .send('{"username": ')
@@ -107,7 +106,7 @@ describe("POST /api/login", () => {
 describe("GET /api/me", () => {
 
     test("ger 401 utan inloggning", async () => {
-        const response = await request(app).get("/api/me").expect(401);
+        const response = await api(app).get("/api/me").expect(401);
 
         expect(response.body).toEqual({
             success: false,
@@ -153,7 +152,7 @@ describe("skyddade routes utan inloggning", () => {
         ["GET", "/api/patients/1"],
         ["POST", "/api/patients/1/notes"]
     ])("%s %s ger 401", async (method, url) => {
-        const response = await request(app)[method.toLowerCase()](url).expect(401);
+        const response = await api(app)[method.toLowerCase()](url).expect(401);
 
         expect(response.body).toEqual({
             success: false,
@@ -166,7 +165,7 @@ describe("skyddade routes utan inloggning", () => {
 describe("okänd API-väg", () => {
 
     test("ger 404 som JSON", async () => {
-        const response = await request(app).get("/api/finns-inte").expect(404);
+        const response = await api(app).get("/api/finns-inte").expect(404);
 
         expect(response.body).toEqual({ success: false, message: "Hittades inte." });
     });

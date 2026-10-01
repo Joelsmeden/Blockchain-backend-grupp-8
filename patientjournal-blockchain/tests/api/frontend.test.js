@@ -1,8 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
-const request = require("supertest");
-const { freshApp } = require("../helpers/api");
+const { freshApp, api } = require("../helpers/api");
 
 
 // Gränssnittet är vanlig JavaScript i webbläsaren utan byggsteg. Här
@@ -23,7 +22,7 @@ beforeAll(() => {
 describe("frontend", () => {
 
     test("startsidan serveras med inloggning, sökning, formulär och logg", async () => {
-        const response = await request(app).get("/").expect(200);
+        const response = await api(app).get("/").expect(200);
 
         expect(response.headers["content-type"]).toMatch(/text\/html/);
 
@@ -42,14 +41,14 @@ describe("frontend", () => {
     });
 
     test.each(scripts.filter(src => src.startsWith("/js/")))("%s serveras och går att tolka", async (src) => {
-        const response = await request(app).get(src).expect(200);
+        const response = await api(app).get(src).expect(200);
 
         expect(response.text.length).toBeGreaterThan(0);
         expect(() => new vm.Script(response.text, { filename: src })).not.toThrow();
     });
 
     test("stilmallen serveras", async () => {
-        await request(app).get("/css/style.css").expect(200);
+        await api(app).get("/css/style.css").expect(200);
     });
 
     test("synlighetsvalen i formuläret är API:ets värden", () => {
