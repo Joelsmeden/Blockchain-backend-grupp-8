@@ -187,12 +187,12 @@ function receiveBlock(block) {
 }
 
 
-// Byter till en längre giltig kedja från en annan nod. Varje åtkomst
-// blir ett block direkt, så två noder kan hinna skapa block med samma
-// index. Längsta kedjan vinner, men då försvinner posterna i kedjan som
-// förlorade. De jämförs före och efter bytet och minas om ovanpå den
-// nya kedjan, så att ingen åtkomst tappas. Returnerar true om kedjan
-// byttes.
+// Byter till en giltig kedja från en annan nod om den är längre, eller
+// lika lång med lägre sista hash. Varje åtkomst blir ett block direkt,
+// så två noder kan hinna skapa block med samma index. En kedja vinner,
+// men då försvinner posterna i kedjan som förlorade. De jämförs före
+// och efter bytet och minas om ovanpå den nya kedjan, så att ingen
+// åtkomst tappas. Returnerar true om kedjan byttes.
 function replaceChain(newChain) {
 
     const before = blockchain.chain.slice(1).map(block => block.data);

@@ -114,12 +114,24 @@ class Blockchain {
     }
 
 
-    // Byter till en annan kedja bara om den är längre och giltig.
+    // Byter till en annan giltig kedja om den är längre. Lika långa kedjor
+    // avgörs av lägst sista hash, jämförd som sträng, så att båda noderna
+    // i en fork väljer samma kedja. Identisk sista hash ger false.
     // Returnerar true om bytet gjordes.
     replaceChain(newChain) {
 
-        if (!Array.isArray(newChain) || newChain.length <= this.chain.length) {
+        if (!Array.isArray(newChain) || newChain.length === 0 || newChain.length < this.chain.length) {
             return false;
+        }
+
+        if (newChain.length === this.chain.length) {
+
+            const theirs = newChain[newChain.length - 1];
+            const ours = this.getLatestBlock();
+
+            if (!theirs || typeof theirs.hash !== "string" || !(theirs.hash < ours.hash)) {
+                return false;
+            }
         }
 
         if (!this.isChainValid(newChain)) {

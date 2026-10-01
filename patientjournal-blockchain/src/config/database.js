@@ -4,13 +4,12 @@ const Database = require("better-sqlite3");
 
 
 // Testerna kör mot en databas i minnet så att de inte påverkar varandra
-// eller den riktiga filen. Annars delar båda noderna samma fil, som kan
-// flyttas med DB_PATH.
+// eller den riktiga filen, om inte DB_PATH anges uttryckligen. Annars
+// delar båda noderna samma fil, som kan flyttas med DB_PATH.
 const DEFAULT_DB_PATH = path.join(__dirname, "..", "..", "data", "patientjournal.db");
 
-const dbPath = process.env.NODE_ENV === "test"
-    ? ":memory:"
-    : (process.env.DB_PATH || DEFAULT_DB_PATH);
+const dbPath = process.env.DB_PATH
+    || (process.env.NODE_ENV === "test" ? ":memory:" : DEFAULT_DB_PATH);
 
 if (dbPath !== ":memory:") {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });

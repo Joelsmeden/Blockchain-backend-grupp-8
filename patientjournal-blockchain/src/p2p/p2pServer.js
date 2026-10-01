@@ -12,6 +12,14 @@ const accessLogService = require("../services/accessLogService");
 //   QUERY_ALL            be motparten om hela kedjan
 //   RESPONSE_BLOCKCHAIN  svar med ett eller flera block
 //   BROADCAST_BLOCK      ett nytt block som just lagts till
+//
+// Mottagna block: ett block som pekar på vårt senaste läggs till och
+// skickas vidare. Ett som inte passar leder till att hela kedjan begärs.
+// En hel kedja ersätter vår om den är längre, eller lika lång med lägre
+// sista hash. Den regeln avgör en fork där två noder minat var sitt
+// block med samma index: exakt en nod byter, minar om sin post och
+// sprider den som ett vanligt block. Den som behåller sin kedja skickar
+// den till motparten så att båda tillämpar samma regel.
 
 const MESSAGE_TYPES = Object.freeze({
     QUERY_LATEST: "QUERY_LATEST",
@@ -75,8 +83,36 @@ function createP2PServer({
         const latestReceived = received[received.length - 1];
         const latestOurs = ledger.getBlockchain().getLatestBlock();
 
-        // Inget vi saknar
-        if (latestReceived.index <= latestOurs.index) {
+        // Äldre än vårt senaste: inget vi saknar
+        if (latestReceived.index < latestOurs.index) {
+            return;
+        }
+
+        if (latestReceived.index === latestOurs.index) {
+
+            // Samma block, vi har det redan
+            if (latestReceived.hash === latestOurs.hash) {
+                return;
+            }
+
+            // Fork: ett ensamt block avgör den inte, be om hela kedjan
+            if (received.length === 1) {
+                say(`block ${latestReceived.index} har samma index som vårt men annan hash, begär hela kedjan`);
+                send(from, MESSAGE_TYPES.QUERY_ALL);
+                return;
+            }
+
+            // Lika långa kedjor: lägst sista hash vinner. Byter vi minar
+            // liggaren om våra poster och sprider dem. Byter vi inte är det
+            // motparten som ska byta, så den får vår kedja och tillämpar
+            // samma regel. Exakt en nod byter, så det blir ingen loop.
+            if (ledger.replaceChain(received)) {
+                say(`fork vid block ${latestReceived.index}, bytte till kedjan med lägst sista hash`);
+            } else if (received.length === ledger.getChain().length) {
+                say(`fork vid block ${latestReceived.index}, behöll egen kedja och skickade den`);
+                send(from, MESSAGE_TYPES.RESPONSE_BLOCKCHAIN, ledger.getChain());
+            }
+
             return;
         }
 
@@ -100,7 +136,7 @@ function createP2PServer({
             return;
         }
 
-        // En hel kedja: liggaren byter om den är längre och giltig, och
+        // En hel kedja som är längre: liggaren byter om den är giltig och
         // minar om de egna poster som försvann i bytet.
         if (ledger.replaceChain(received)) {
             say(`bytte till mottagen kedja med ${received.length} block`);
