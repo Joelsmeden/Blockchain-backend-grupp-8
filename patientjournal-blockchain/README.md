@@ -384,7 +384,7 @@ curl -s http://localhost:3001/api/chain/verify      # valid: false, missingRows:
 npm test
 ```
 
-Sviten har 287 tester i 17 filer och tar några sekunder. Testerna kör mot en databas i minnet, med svårighetsgrad 1 och utan kedjefil, och varje testfil får egna moduler så att de inte påverkar varandra eller den riktiga databasen.
+Sviten har 304 tester i 18 filer och tar några sekunder. Testerna kör mot en databas i minnet, med svårighetsgrad 1 och utan kedjefil, och varje testfil får egna moduler så att de inte påverkar varandra eller den riktiga databasen.
 
 | Katalog | Vad som testas |
 |---|---|
