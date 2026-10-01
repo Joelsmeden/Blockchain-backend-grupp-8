@@ -1,6 +1,6 @@
 # Patientjournal med blockkedja
 
-Teknisk dokumentation för backend. Projektets översikt finns i [README i repots rot](../README.md), arkitekturen beskrivs i [docs/arkitektur.md](docs/arkitektur.md).
+Grupparbete i kursen Blockkedja backend, Node.js och blockkedja, i utbildningen Blockchainutvecklare på Medieinstitutet, hösten 2026. Teknisk dokumentation för backend. Projektets översikt finns i [README i repots rot](../README.md), arkitekturen beskrivs i [docs/arkitektur.md](docs/arkitektur.md).
 
 Systemet är ett journalsystem där patientdata ligger i en SQL-databas, medan varje åtkomst till en journal registreras i en blockkedja som synkas mellan två servrar över WebSockets. Den som öppnar en journal, skriver en anteckning eller nekas åtkomst lämnar ett spår som inte kan ändras eller raderas i efterhand utan att det upptäcks. Journaltexten finns aldrig i kedjan, bara id-nummer, tidpunkt och en hash.
 
@@ -66,7 +66,35 @@ Demodatan har tre patienter, Lisa Karlsson (1), Johan Nilsson (2) och Maria Lind
 
 ## Skärmdumpar
 
-Skärmdumpar av inloggning, sökning, journalvy per roll och åtkomstloggen i realtid läggs till här.
+Bilderna ligger i `docs/screenshots/` och är tagna med två noder igång på samma dator.
+
+![Inloggning](docs/screenshots/01-inloggning.png)
+
+Inloggning med val av nod. Alla demokonton har lösenordet 1234.
+
+![Sökning](docs/screenshots/02-sok.png)
+
+Läkaren söker på patientens namn.
+
+![Läkarens vy](docs/screenshots/03-journal-lakare.png)
+
+Läkarens vy av en journal: anteckningar med olika synlighet och åtkomstloggen, där varje rad är kontrollerad mot kedjan.
+
+![Ny anteckning](docs/screenshots/04-ny-anteckning.png)
+
+Ny anteckning med val av synlighet: privat, sjukvårdspersonal eller alla.
+
+![Patientens vy](docs/screenshots/05-journal-patient.png)
+
+Patienten kommer direkt till sin egen journal, ser bara anteckningar som är synliga för alla, och ser vilka som öppnat journalen.
+
+![Realtid på nod 2](docs/screenshots/06-realtid-nod2.png)
+
+Vårdcentralen har samma journal öppen på nod 2. Läkarens anteckning från nod 1 och alla åtkomster, även en annan patients nekade försök att öppna journalen, kommer upp i realtid och verifieras mot nod 2:s kedja.
+
+![Åtkomst nekad](docs/screenshots/07-atkomst-nekad.png)
+
+Ett konto utan behörighet får bara sidan Åtkomst nekad.
 
 ## Roller och behörighet
 

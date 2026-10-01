@@ -1,6 +1,6 @@
 # Arkitektur
 
-Beskriver hur delarna i `patientjournal-blockchain/` hänger ihop och varför de ser ut som de gör. Installation, API och databasschema finns i [README](../README.md).
+Grupparbete i kursen Blockkedja backend, Node.js och blockkedja, i utbildningen Blockchainutvecklare på Medieinstitutet, hösten 2026. Beskriver hur delarna i `patientjournal-blockchain/` hänger ihop och varför de ser ut som de gör. Installation, API och databasschema finns i [README](../README.md).
 
 ## Översikt
 
