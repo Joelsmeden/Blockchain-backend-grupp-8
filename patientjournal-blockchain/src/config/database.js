@@ -19,11 +19,30 @@ if (dbPath !== ":memory:") {
 
 const db = new Database(dbPath);
 
-// WAL låter två processer läsa och skriva samma fil samtidigt.
 // busy_timeout gör att en nod väntar i stället för att få fel när den
-// andra noden håller skrivlåset.
-db.pragma("journal_mode = WAL");
+// andra noden håller låset.
 db.pragma("busy_timeout = 5000");
+
+// WAL låter två processer läsa och skriva samma fil samtidigt. Själva
+// bytet till WAL kräver ett exklusivt lås, och startas två noder
+// samtidigt mot en ny databasfil försöker båda byta på en gång. Då ger
+// SQLite SQLITE_BUSY direkt utan att vänta, för att undvika dödläge, så
+// vi försöker igen en kort stund. Läget sparas i filen, vid senare
+// starter behövs inget byte.
+const deadline = Date.now() + 5000;
+
+for (;;) {
+    try {
+        db.pragma("journal_mode = WAL");
+        break;
+    } catch (error) {
+        if (error.code !== "SQLITE_BUSY" || Date.now() > deadline) {
+            throw error;
+        }
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+    }
+}
+
 db.pragma("foreign_keys = ON");
 
 

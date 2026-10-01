@@ -1,5 +1,6 @@
 const db = require("../config/database");
 const { hashPassword } = require("../services/authService");
+const chainStore = require("../blockchain/chainStore");
 
 
 // Demodata. Körs automatiskt vid start om databasen är tom,
@@ -82,7 +83,7 @@ const insertNote = db.prepare(`
 
 // Allt eller inget. Returnerar true om data lades in, false om databasen
 // redan hade användare.
-const seed = db.transaction(() => {
+const insertDemoData = db.transaction(() => {
 
     const { count } = db.prepare("SELECT COUNT(*) AS count FROM users").get();
 
@@ -101,6 +102,23 @@ const seed = db.transaction(() => {
 
     return true;
 });
+
+
+// När databasen seedas från tomt tas gamla kedjefiler bort, eftersom en
+// sparad kedja då pekar på loggrader som inte längre finns.
+function seed() {
+
+    // immediate tar skrivlåset direkt. Startas två noder samtidigt mot en
+    // tom databas väntar då den andra på den första och ser sedan att
+    // data redan finns, i stället för att få SQLITE_BUSY mitt i.
+    const seeded = insertDemoData.immediate();
+
+    if (seeded) {
+        chainStore.clearAll();
+    }
+
+    return seeded;
+}
 
 
 if (require.main === module) {
