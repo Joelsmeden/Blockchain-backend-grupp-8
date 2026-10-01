@@ -2,6 +2,9 @@ const request = require("supertest");
 const { freshApp, loginAs, accessLogService, db } = require("../helpers/api");
 
 
+// Varje test får en egen app med egen databas och kedja. Ett test som
+// loggar in mer än en gång binder appen till en konstant först, så att en
+// fortsättning efter en timeout aldrig anropar nästa tests app.
 let app;
 
 beforeEach(() => {
@@ -10,12 +13,12 @@ beforeEach(() => {
 
 
 // Skapar lite trafik: en läsning, en skrivning och en nekad åtkomst
-async function someTraffic() {
-    const doctor = await loginAs(app, "doctor");
+async function someTraffic(currentApp = app) {
+    const doctor = await loginAs(currentApp, "doctor");
     await doctor.get("/api/patients/1").expect(200);
     await doctor.post("/api/patients/1/notes").send({ title: "Rubrik", content: "Text" }).expect(201);
 
-    const patient = await loginAs(app, "patient");
+    const patient = await loginAs(currentApp, "patient");
     await patient.get("/api/patients/2").expect(403);
 }
 

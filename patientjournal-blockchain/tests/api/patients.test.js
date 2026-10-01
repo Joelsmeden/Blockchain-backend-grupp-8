@@ -1,6 +1,9 @@
 const { freshApp, loginAs, accessLogService } = require("../helpers/api");
 
 
+// Varje test får en egen app med egen databas och kedja. Ett test som
+// loggar in mer än en gång binder appen till en konstant först, så att en
+// fortsättning efter en timeout aldrig anropar nästa tests app.
 let app;
 
 beforeEach(() => {
@@ -150,10 +153,11 @@ describe("GET /api/patients/:id", () => {
     });
 
     test("den nekade åtkomsten syns i den andra patientens logg", async () => {
-        const patientAgent = await loginAs(app, "patient");
+        const currentApp = app;
+        const patientAgent = await loginAs(currentApp, "patient");
         await patientAgent.get("/api/patients/2").expect(403);
 
-        const doctorAgent = await loginAs(app, "doctor");
+        const doctorAgent = await loginAs(currentApp, "doctor");
         const response = await doctorAgent.get("/api/patients/2").expect(200);
 
         expect(response.body.accessLog.map(entry => [entry.action, entry.userName])).toEqual([
