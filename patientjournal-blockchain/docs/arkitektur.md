@@ -148,7 +148,7 @@ A minar om den ovanpå den nya kedjan och skickar blocket till B.
 A:  G - 1 - 2b - 3b - 4(2a)       B:  G - 1 - 2b - 3b - 4(2a)
 ```
 
-`replaceChain` i liggaren jämför posternas `entryHash` före och efter bytet. De som saknas minas om i ursprunglig ordning, raden i databasen får det nya blockets hash, och varje omminerat block skickas ut som ett vanligt eget block. Ingen åtkomst tappas, den byter bara plats.
+`replaceChain` i liggaren jämför posternas `entryHash` före och efter bytet. De som saknas minas om i ursprunglig ordning, raden i databasen får det nya blockets hash, och varje omminerat block skickas ut som ett vanligt eget block. Ingen åtkomst tappas, den byter bara plats. Är kedjorna lika långa, som när båda noderna minat ett block var med samma index, avgörs forken av lägst sista hash: noden med den högre hashen byter och minar om sin post, den andra behåller sin kedja.
 
 ### Återanslutning
 

@@ -1,4 +1,8 @@
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const WebSocket = require("ws");
+const Blockchain = require("../../src/blockchain/Blockchain");
 const { MESSAGE_TYPES } = require("../../src/p2p/p2pServer");
 
 
@@ -266,6 +270,71 @@ describe("fork", () => {
         expect(a.chain()).toHaveLength(4);     // A:s två plus B:s omminerade
         expect(a.chain()[2].hash).toBe(hashBefore);
     });
+
+    test("två noder som minat var sitt block med samma index konvergerar till samma kedja, oavsett vem som vinner", async () => {
+
+        // Här delar noderna databas, som i drift, så att verifieringen kan
+        // kontrollera alla rader mot kedjan på båda
+        const dbPath = path.join(os.tmpdir(), `p2p-fork-${process.pid}-${Date.now()}.db`);
+        const previousDbPath = process.env.DB_PATH;
+        process.env.DB_PATH = dbPath;
+
+        let nodeA;
+        let nodeB;
+
+        try {
+            nodeA = createNode();
+            nodeB = createNode();
+        } finally {
+            if (previousDbPath === undefined) {
+                delete process.env.DB_PATH;
+            } else {
+                process.env.DB_PATH = previousDbPath;
+            }
+        }
+
+        try {
+            const a = await nodeA.start();
+            const b = await nodeB.start({ peers: [a.url()] });
+            await waitFor(() => connected(a, b), "anslutning");
+
+            const shared = a.record();
+            await waitFor(() => sameChain(a, b), "gemensam start");
+
+            // Bryt anslutningen och låt båda mina ett block med samma index
+            await b.p2p.stop();
+            await waitFor(() => a.p2p.getPeerCount() === 0, "frånkoppling");
+
+            const aEntry = a.record(2);
+            const bEntry = b.record(3);
+
+            expect(a.chain()).toHaveLength(3);
+            expect(b.chain()).toHaveLength(3);
+            expect(a.latestHash()).not.toBe(b.latestHash());
+
+            // Återanslut
+            b.p2p = b.createP2PServer({ port: 0, peers: [a.url()], ledger: b.service, log: () => {}, reconnectInterval: 100 });
+            await b.p2p.start();
+
+            await waitFor(() => sameChain(a, b) && a.chain().length === 4, "konvergens");
+
+            // Alla tre poster finns på båda noderna
+            const expected = [shared.entry.entryHash, aEntry.entry.entryHash, bEntry.entry.entryHash].sort();
+            expect(a.entryHashes()).toEqual(expected);
+            expect(b.entryHashes()).toEqual(expected);
+
+            // Blocket med lägst hash behöll plats 2, den andra posten minades om sist
+            const [winningHash] = [aEntry.block.hash, bEntry.block.hash].sort();
+            const loser = winningHash === aEntry.block.hash ? bEntry : aEntry;
+            expect(a.chain()[2].hash).toBe(winningHash);
+            expect(a.chain()[3].data.entryHash).toBe(loser.entry.entryHash);
+
+            expect(a.service.verifyAll()).toMatchObject({ valid: true, rowCount: 3, entryCount: 3 });
+            expect(b.service.verifyAll()).toMatchObject({ valid: true, rowCount: 3, entryCount: 3 });
+        } finally {
+            [dbPath, `${dbPath}-wal`, `${dbPath}-shm`].forEach(file => fs.rmSync(file, { force: true }));
+        }
+    });
 });
 
 
@@ -346,5 +415,52 @@ describe("skydd mot felaktiga meddelanden", () => {
         expect(messages[1].data).toHaveLength(1);
         expect(messages[1].data[0].hash).toBe(a.latestHash());
         expect(messages[2].data).toHaveLength(3);
+    });
+
+    test("en fork besvaras med egen kedja bara när den mottagna kedjan är giltig", async () => {
+        const a = await createNode().start();
+        a.record();
+        const ours = a.latestHash();
+
+        // En lika lång kedja från en annan nod, genesis plus ett block,
+        // vars sista hash uppfyller villkoret
+        function equalChain(accept) {
+            for (let id = 50; id < 5000; id++) {
+                const other = new Blockchain();
+                other.addBlock({
+                    id, patientId: 2, userId: 2, role: "sjuksköterska", action: "READ",
+                    noteId: null, timestamp: "2026-10-01T12:00:00.000Z", entryHash: String(id).repeat(64).slice(0, 64)
+                });
+                if (accept(other.getLatestBlock().hash)) {
+                    return JSON.parse(JSON.stringify(other.chain));
+                }
+            }
+            throw new Error("hittade ingen passande kedja");
+        }
+
+        const responses = (client) => client.messages.filter(message => message.type === MESSAGE_TYPES.RESPONSE_BLOCKCHAIN);
+
+        // Lika lång kedja med manipulerad hash: ignoreras helt, inget svar
+        const tampered = equalChain(() => true);
+        tampered[1].hash = tampered[1].hash.slice(0, -1) + (tampered[1].hash.endsWith("0") ? "1" : "0");
+
+        const client = await rawClient(a);
+        client.send(JSON.stringify({ type: MESSAGE_TYPES.RESPONSE_BLOCKCHAIN, data: tampered }));
+        await pause(150);
+
+        expect(a.chain()).toHaveLength(2);
+        expect(a.latestHash()).toBe(ours);
+        expect(responses(client)).toHaveLength(0);
+
+        // Lika lång giltig kedja med högre sista hash: A behåller sin kedja
+        // och skickar den, exakt en gång, så att motparten byter
+        const higher = equalChain(hash => hash > ours);
+        client.send(JSON.stringify({ type: MESSAGE_TYPES.RESPONSE_BLOCKCHAIN, data: higher }));
+        await pause(150);
+        client.close();
+
+        expect(a.latestHash()).toBe(ours);
+        expect(responses(client)).toHaveLength(1);
+        expect(responses(client)[0].data).toEqual(JSON.parse(JSON.stringify(a.chain())));
     });
 });

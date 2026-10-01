@@ -64,8 +64,6 @@ Alla konton har lösenordet `1234`.
 
 Demodatan har tre patienter, Lisa Karlsson (1), Johan Nilsson (2) och Maria Lindqvist (3), med anteckningar i alla tre synlighetsnivåerna.
 
-Inloggningen läser just nu kontona från `src/models/userModel.js`. Kontot `patient2` finns bara i databasen och kan användas när inloggningen pekas om till `authService.authenticateUser`, se [Kända begränsningar](#kända-begränsningar).
-
 ## Skärmdumpar
 
 Skärmdumpar av inloggning, sökning, journalvy per roll och åtkomstloggen i realtid läggs till här.
@@ -326,14 +324,14 @@ Kedjan ligger i minnet. Varje nod sparar därför sin kedja i `data/chain-<P2P_P
 
 När ett block tas emot:
 
-- Index lägre än eller lika med vårt senaste: ignorera, vi har det redan.
+- Index lägre än vårt senaste, eller samma block som vårt senaste: ignorera, vi har det redan.
 - Pekar på vårt senaste: lägg till, och skicka vidare till övriga noder **bara om det faktiskt lades till**. Annars skulle samma block studsa runt mellan noderna.
 - Ett ensamt block som inte passar: vi ligger mer än ett block efter, eller har en fork. Be om hela kedjan.
-- En hel kedja: byt till den bara om den är **längre och giltig**.
+- En hel kedja: byt till den bara om den är **längre och giltig**, eller lika lång med **lägre sista hash**. Behåller vi vår kedja i en fork skickas den till motparten, som tillämpar samma regel, så exakt en nod byter.
 
 ### Forkhantering
 
-Varje åtkomst blir ett block direkt, så två noder kan hinna skapa block med samma index samtidigt. Längsta kedjan vinner, men då skulle posten i den kedja som förlorade försvinna. Därför jämförs kedjans poster före och efter bytet, och de egna poster som saknas minas om ovanpå den nya kedjan. Raden i databasen får det nya blockets hash. Ingen åtkomst tappas, den byter bara plats i kedjan.
+Varje åtkomst blir ett block direkt, så två noder kan hinna skapa block med samma index samtidigt. Längsta kedjan vinner, och är kedjorna lika långa vinner den med lägst sista hash, så att båda noderna väljer samma kedja utan att vänta på nästa block. Då skulle posten i den kedja som förlorade försvinna. Därför jämförs kedjans poster före och efter bytet, och de egna poster som saknas minas om ovanpå den nya kedjan. Raden i databasen får det nya blockets hash. Ingen åtkomst tappas, den byter bara plats i kedjan.
 
 ## Prova själv
 
@@ -386,7 +384,7 @@ curl -s http://localhost:3001/api/chain/verify      # valid: false, missingRows:
 npm test
 ```
 
-Sviten har 287 tester i 17 filer och tar några sekunder. Testerna kör mot en databas i minnet, med svårighetsgrad 1 och utan kedjefil, och varje testfil får egna moduler så att de inte påverkar varandra eller den riktiga databasen.
+Sviten har 304 tester i 18 filer och tar några sekunder. Testerna kör mot en databas i minnet, med svårighetsgrad 1 och utan kedjefil, och varje testfil får egna moduler så att de inte påverkar varandra eller den riktiga databasen.
 
 | Katalog | Vad som testas |
 |---|---|
@@ -438,7 +436,6 @@ Flödet är routes → controllers → services → models. Kedjan ägs av `acce
 
 ## Kända begränsningar
 
-- **Inloggningen läser från `userModel.js`.** `authService.authenticateUser` gör samma sak mot databasen och returnerar samma objekt, så bytet är en `require`-rad i `authController.js`. Tills dess fungerar inte kontot `patient2`.
 - **Båda noderna måste nå samma databasfil.** Kedjan replikeras mellan noderna, men databasen delas. Noderna ska därför köras på samma maskin, eller mot en gemensam fil.
 - **Sessioner ligger i minnet** per nod. Startas en nod om loggas användarna ut från den noden.
 - **Omminering kan ge dubbletter med tre eller fler noder**, om flera noder förlorat samma post i en fork och alla minar om den. Med två noder kan det inte hända, eftersom en post bara finns på noden som skapade den tills den spridits.

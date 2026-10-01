@@ -411,17 +411,54 @@ describe("replaceChain", () => {
         return JSON.parse(JSON.stringify(other.chain));
     }
 
+    // En lika lång kedja, genesis plus ett block, vars sista hash uppfyller
+    // villkoret mot vår. Olika poster ger olika hashar, så det räcker att
+    // prova några.
+    function equalLengthChain(accept) {
+        for (let id = 50; id < 5000; id++) {
+            const other = new Blockchain();
+            other.addBlock(foreignEntry(id));
+            if (accept(other.getLatestBlock().hash)) {
+                return JSON.parse(JSON.stringify(other.chain));
+            }
+        }
+        throw new Error("hittade ingen kedja som uppfyller villkoret");
+    }
+
     test("byter till en längre giltig kedja", () => {
         expect(service.replaceChain(foreignChain(2))).toBe(true);
         expect(service.getChain()).toHaveLength(3);
         expect(service.getChain()[2].data.id).toBe(51);
     });
 
-    test("behåller egen kedja om den mottagna är lika lång, kortare eller ogiltig", () => {
-        service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
+    test("byter till en lika lång kedja med lägre sista hash och minar om den egna posten", () => {
+        const { entry, block } = service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
+        const lower = equalLengthChain(hash => hash < block.hash);
+        const listener = jest.fn();
+        service.events.on("block", listener);
+
+        expect(service.replaceChain(lower)).toBe(true);
+
+        const chain = service.getChain();
+        expect(chain).toHaveLength(3);
+        expect(chain[1].hash).toBe(lower[1].hash);
+
+        // Vår post ligger sist i ett nytt block, och raden pekar på det
+        const remined = chain[2];
+        expect(remined.data).toEqual(block.data);
+        expect(remined.hash).not.toBe(block.hash);
+        expect(model.findById(entry.id).blockHash).toBe(remined.hash);
+        expect(service.verifyEntry(model.findById(entry.id))).toBe(true);
+        expect(service.getBlockchain().isChainValid()).toBe(true);
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener.mock.calls[0][0]).toMatchObject({ origin: "local", entry: { id: entry.id } });
+    });
+
+    test("behåller egen kedja om den mottagna är lika lång med högre sista hash, kortare eller ogiltig", () => {
+        const { block } = service.recordAccess({ user: doctor, patientId: 1, action: "READ" });
         const before = service.getBlockchain().getLatestBlock().hash;
 
-        expect(service.replaceChain(foreignChain(1))).toBe(false);
+        expect(service.replaceChain(equalLengthChain(hash => hash > block.hash))).toBe(false);
         expect(service.replaceChain(foreignChain(0))).toBe(false);
 
         const tampered = foreignChain(3);

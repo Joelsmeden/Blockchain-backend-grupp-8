@@ -9,10 +9,10 @@ const { mineBlock } = require("../../src/blockchain/proofOfWork");
 const entry = (id) => ({ id, patientId: 1, userId: 4, role: "patient", action: "READ", noteId: null });
 
 
-function chainWithBlocks(count) {
+function chainWithBlocks(count, firstId = 1) {
     const blockchain = new Blockchain();
-    for (let i = 1; i <= count; i++) {
-        blockchain.addBlock(entry(i));
+    for (let i = 0; i < count; i++) {
+        blockchain.addBlock(entry(firstId + i));
     }
     return blockchain;
 }
@@ -276,12 +276,33 @@ describe("replaceChain", () => {
         expect(ours.isChainValid()).toBe(true);
     });
 
-    test("behåller egen kedja om den inkommande är lika lång", () => {
+    test("lika långa kedjor avgörs av lägst sista hash, åt båda hållen", () => {
+        const first = chainWithBlocks(2);
+        const second = chainWithBlocks(2, 10);   // andra poster, alltså andra hashar
+        expect(first.getLatestBlock().hash).not.toBe(second.getLatestBlock().hash);
+
+        const [low, high] = first.getLatestBlock().hash < second.getLatestBlock().hash
+            ? [first, second]
+            : [second, first];
+        const lowChain = JSON.parse(JSON.stringify(low.chain));
+        const highChain = JSON.parse(JSON.stringify(high.chain));
+
+        // Den med lägst sista hash behåller sin kedja
+        const before = low.chain;
+        expect(low.replaceChain(highChain)).toBe(false);
+        expect(low.chain).toBe(before);
+
+        // Den med högst byter, så båda hamnar på samma kedja
+        expect(high.replaceChain(lowChain)).toBe(true);
+        expect(high.getLatestBlock().hash).toBe(low.getLatestBlock().hash);
+        expect(high.isChainValid()).toBe(true);
+    });
+
+    test("behåller egen kedja om den inkommande är identisk", () => {
         const ours = chainWithBlocks(2);
-        const theirs = chainWithBlocks(2);
         const before = ours.chain;
 
-        expect(ours.replaceChain(theirs.chain)).toBe(false);
+        expect(ours.replaceChain(JSON.parse(JSON.stringify(ours.chain)))).toBe(false);
         expect(ours.chain).toBe(before);
     });
 
