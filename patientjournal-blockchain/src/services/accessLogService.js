@@ -2,6 +2,7 @@ const EventEmitter = require("events");
 const Blockchain = require("../blockchain/Blockchain");
 const { sha256, canonicalStringify } = require("../blockchain/crypto");
 const accessLogModel = require("../models/accessLogModel");
+const chainStore = require("../blockchain/chainStore");
 
 
 // Åtkomstliggaren finns på två ställen med olika syften.
@@ -79,6 +80,7 @@ function recordAccess({ user, patientId, action, noteId = null }) {
     const block = blockchain.addBlock({ ...fields, entryHash });
 
     accessLogModel.setHashes(row.id, entryHash, block.hash);
+    persist();
 
     const entry = accessLogModel.findById(row.id);
 
@@ -151,11 +153,29 @@ function receiveBlock(block) {
         return false;
     }
 
+    persist();
+
     const stored = blockchain.getLatestBlock();
 
     events.emit("block", { block: stored, entry: entryForBlock(stored), origin: "remote" });
 
     return true;
+}
+
+
+// Sparar nodens kedja till fil efter varje ändring. Gör inget i test.
+function persist() {
+    chainStore.save(blockchain.chain);
+}
+
+
+// Läser in nodens sparade kedja vid start. Byter bara om den är längre
+// än den vi har och giltig. Returnerar true om kedjan lästes in.
+function loadChain() {
+
+    const saved = chainStore.load();
+
+    return saved !== null && blockchain.replaceChain(saved);
 }
 
 
@@ -179,6 +199,7 @@ module.exports = {
     verifyEntry,
     verifyAll,
     receiveBlock,
+    loadChain,
     getChain,
     getBlockchain
 };
