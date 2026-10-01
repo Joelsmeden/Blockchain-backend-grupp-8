@@ -28,6 +28,8 @@ fetchNodeStatus();
     const accessLogList = document.getElementById("access-log-list");
     const chainStatus = document.querySelector(".blockchain-status");
 
+    let statusTimer = null;
+
     const ACTIONS = {
         READ: { icon: "👤", label: "Läste journalen" },
         WRITE: { icon: "✎", label: "Skrev en anteckning" },
@@ -44,25 +46,37 @@ fetchNodeStatus();
         }
 
         entries.forEach(entry => accessLogList.append(renderEntry(entry)));
-        updateChainStatus();
+        refreshChainStatus();
     }
 
 
-    // Posten från realtidshändelsen. Samma post kan redan finnas om
-    // journalen hann hämtas om, då hoppas den över.
+    // Posten från realtidshändelsen. Finns samma post redan, till exempel
+    // från en omhämtning som hann före, byts raden ut mot den här.
     function prepend(entry) {
 
-        if (accessLogList.querySelector(`[data-id="${entry.id}"]`)) {
-            return;
+        const row = renderEntry(entry);
+        const existing = accessLogList.querySelector(`[data-id="${entry.id}"]`);
+
+        if (existing) {
+            existing.replaceWith(row);
+        } else {
+            const empty = accessLogList.querySelector(".subtitle");
+            if (empty) {
+                empty.remove();
+            }
+            accessLogList.prepend(row);
         }
 
-        const empty = accessLogList.querySelector(".subtitle");
-        if (empty) {
-            empty.remove();
-        }
+        refreshChainStatus();
+    }
 
-        accessLogList.prepend(renderEntry(entry));
+
+    // Kontrollerar kedjan direkt och en gång till efter en stund, så att
+    // märket hinner bli grönt när den andra noden tagit emot blocket.
+    function refreshChainStatus() {
         updateChainStatus();
+        clearTimeout(statusTimer);
+        statusTimer = setTimeout(updateChainStatus, 1500);
     }
 
 
