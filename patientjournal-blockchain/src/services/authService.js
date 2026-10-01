@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const db = require("../config/database");
 
 
 // Lösenord hashas med scrypt och ett slumpat salt per användare.
@@ -38,7 +39,43 @@ function verifyPassword(password, hash, salt) {
 }
 
 
+const findByUsernameStmt = db.prepare(`
+    SELECT id, username, name, role,
+           patient_id    AS patientId,
+           password_hash AS passwordHash,
+           password_salt AS passwordSalt
+    FROM users
+    WHERE username = ?
+`);
+
+
+// Kontrollerar inloggning mot databasen. Returnerar samma objekt som
+// userModel.authenticateUser, så att controllern kan byta källa genom
+// att ändra en require-rad.
+function authenticateUser(username, password) {
+
+    if (typeof username !== "string" || typeof password !== "string") {
+        return null;
+    }
+
+    const user = findByUsernameStmt.get(username);
+
+    if (!user || !verifyPassword(password, user.passwordHash, user.passwordSalt)) {
+        return null;
+    }
+
+    return {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        patientId: user.patientId
+    };
+}
+
+
 module.exports = {
     hashPassword,
-    verifyPassword
+    verifyPassword,
+    authenticateUser
 };
